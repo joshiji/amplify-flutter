@@ -140,6 +140,9 @@ updates:
       - dependency-name: "amplify_lints"
     # Group dependencies which have a constraint set in the global "pubspec.yaml"
     groups:
+      http:
+        patterns:
+          - "http"
       json_annotation:
         patterns:
           - "json_annotation"
