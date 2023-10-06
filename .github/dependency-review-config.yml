@@ -10,5 +10,7 @@ allow_licenses:
   - "bzip2-1.0.6"
   - "CC0-1.0"
   - "curl"
+  - "ISC"
+  - "MIT"
 base_ref: "79982007a70fbd47a47ad9658c25091003e6ac92"
 head_ref: "75d35fff3fd2faf48a1a8a8bc251a3b713172bfe"
