@@ -71,37 +71,45 @@ class QuerySnapshot<T extends Model> {
   QuerySnapshot<T> withSubscriptionEvent({
     required SubscriptionEvent<T> event,
   }) {
-    final sortedListCopy = SortedList<T>.from(_sortedList);
     SortedList<T>? updatedSortedList;
 
     final newItem = event.item;
-    final newItemMatchesPredicate = where == null || where!.evaluate(newItem);
-    final currentItemIndex =
+    final newItemMatches = where == null || where!.evaluate(newItem);
+    final currentIndex =
         // TODO(HuiSF): remove the ignore when merging CPK feature commits
         // ignore: deprecated_member_use_from_same_package
-        sortedListCopy.indexWhere((item) => item.getId() == newItem.getId());
-    final currentItem =
-        currentItemIndex == -1 ? null : sortedListCopy[currentItemIndex];
-    final currentItemMatchesPredicate =
-        currentItem != null && (where == null || where!.evaluate(currentItem));
+        _sortedList.indexWhere((item) => item.getId() == newItem.getId());
+    final currentItem = currentIndex == -1 ? null : _sortedList[currentIndex];
 
-    if (event.eventType == EventType.create &&
-        newItemMatchesPredicate &&
-        currentItem == null) {
-      updatedSortedList = sortedListCopy..addSorted(newItem);
-    } else if (event.eventType == EventType.delete && currentItem != null) {
-      updatedSortedList = sortedListCopy..removeAt(currentItemIndex);
-    } else if (event.eventType == EventType.update) {
-      if (currentItemMatchesPredicate &&
-          newItemMatchesPredicate &&
-          currentItem != newItem) {
-        updatedSortedList = sortedListCopy
-          ..updateAtSorted(currentItemIndex, newItem);
-      } else if (currentItemMatchesPredicate && !newItemMatchesPredicate) {
-        updatedSortedList = sortedListCopy..removeAt(currentItemIndex);
-      } else if (currentItem == null && newItemMatchesPredicate) {
-        updatedSortedList = sortedListCopy..addSorted(newItem);
-      }
+    switch (event.eventType) {
+      case EventType.create:
+        if (newItemMatches && currentItem == null) {
+          updatedSortedList = _sortedList.copy()..addSorted(newItem);
+        } else if (newItemMatches && currentItem != newItem) {
+          // In this case App Sync likely returned a response with an updated
+          // model. This can happen when using custom resolvers.
+          updatedSortedList = _sortedList.copy()
+            ..updateAtSorted(
+              currentIndex,
+              newItem,
+            );
+        }
+      case EventType.update:
+        if (currentItem != null && newItemMatches && currentItem != newItem) {
+          updatedSortedList = _sortedList.copy()
+            ..updateAtSorted(
+              currentIndex,
+              newItem,
+            );
+        } else if (currentItem != null && !newItemMatches) {
+          updatedSortedList = _sortedList.copy()..removeAt(currentIndex);
+        } else if (currentItem == null && newItemMatches) {
+          updatedSortedList = _sortedList.copy()..addSorted(newItem);
+        }
+      case EventType.delete:
+        if (currentItem != null) {
+          updatedSortedList = _sortedList.copy()..removeAt(currentIndex);
+        }
     }
     if (updatedSortedList != null) {
       return QuerySnapshot._(
